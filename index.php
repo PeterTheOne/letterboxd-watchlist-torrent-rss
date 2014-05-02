@@ -13,7 +13,7 @@ $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@title");
 
 $i = 1;
 $films = array();
-while($nodes->length > 0) {
+while($nodes->length > 0 && $i < 4) {
     foreach ($nodes as $node) {
         /** @var $node DOMElement */
         $film = new ArrayObject();
@@ -61,12 +61,12 @@ foreach ($films as $film) {
 }
 
 
-$filmsNotSearchedQuery = $pdo->query('SELECT title FROM films WHERE searched = 0 LIMIT 6;');
+$filmsNotSearchedQuery = $pdo->query('SELECT title FROM films WHERE searched = 0 LIMIT 5;');
 $filmsNotSearchedQuery->execute();
 $filmsNotSearched = $filmsNotSearchedQuery->fetchAll();
 searchForTorrent($pdo, $filmsNotSearched);
 
-$filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY RANDOM() LIMIT 2;');
+$filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY RANDOM() LIMIT 1;');
 $filmsNotFoundQuery->execute();
 $filmsNotFound = $filmsNotFoundQuery->fetchAll();
 searchForTorrent($pdo, $filmsNotFound);
@@ -152,7 +152,7 @@ $filmsFoundQuery = $pdo->query('SELECT created, title, torrent, torrentUrl FROM 
 $filmsFoundQuery->execute();
 $filmsFound = $filmsFoundQuery->fetchAll();
 
-header('Content-Type: application/rss+xml; charset=utf-8');
+header('Content-Type: application/xml; charset=utf-8');
 echo "<?xml version='1.0' encoding='UTF-8'?>\n";
 
 ?>
@@ -168,7 +168,6 @@ echo "<?xml version='1.0' encoding='UTF-8'?>\n";
         <item>
             <title><?php echo $film->title; ?></title>
             <link><?php echo $film->torrentUrl; ?></link>
-            <torrent:magnetURI><?php echo $film->torrent; ?></torrent:magnetURI>
             <description><?php echo $film->title; ?></description>
             <pubDate><?php echo (new DateTime($film->created))->format(DATETIME::RSS); ?></pubDate>
             <enclosure url="<?php echo $film->torrentUrl; ?>" type="application/x-bittorrent" />
