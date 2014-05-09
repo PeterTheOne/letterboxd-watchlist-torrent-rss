@@ -2,7 +2,9 @@
 
 error_reporting(E_ERROR | E_PARSE);
 
-$letterboxdUrl = 'http://letterboxd.com/petertheone/watchlist/';
+$letterboxdUsername = 'petertheone';
+
+$letterboxdUrl = 'http://letterboxd.com/' . $letterboxdUsername . '/watchlist/';
 define('KICKASSTORRENT_URL','http://kickass.to/usearch/category%3Amovies%20');
 
 
