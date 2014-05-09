@@ -159,7 +159,6 @@ echo "<?xml version='1.0' encoding='UTF-8'?>\n";
 <rss version="2.0" xmlns:torrent="http://xmlns.ezrss.it/0.1/">
     <channel>
         <title>letterboxd watchlist rss torrent</title>
-        <!--<link>link</link>-->
         <description>letterboxd watchlist rss torrent</description>
         <language>en-us</language>
 <?php
