@@ -41,6 +41,7 @@ $pdo->query('
     CREATE TABLE IF NOT EXISTS films (
         id INTEGER PRIMARY KEY,
         created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        foundDate TIMESTAMP,
         title VARCHAR(255),
         searched BOOLEAN DEFAULT 0,
         found BOOLEAN DEFAULT 0,
@@ -78,6 +79,7 @@ function searchForTorrent(PDO $pdo, $films) {
     $updateFoundStatement = $pdo->prepare('
         UPDATE films
             SET
+                foundDate = datetime(\'now\'),
                 searched = 1,
                 found = 1,
                 torrent = :torrent,
@@ -123,6 +125,18 @@ function searchForTorrent(PDO $pdo, $films) {
             if (strpos($torrent->title, 'upscaled') !== false) {
                 continue;
             }
+            if (strpos($torrent->title, 'hdcam') !== false) {
+                continue;
+            }
+            if (strpos($torrent->title, 'trailer') !== false) {
+                continue;
+            }
+            if (strpos($torrent->title, 'yify') !== false) {
+                continue;
+            }
+            if (strpos($torrent->title, 'ganool') !== false) {
+                continue;
+            }
             //echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title .  "<br />";
             if (intval($torrent->seeds) > $maxSeeds) {
                 $maxSeeds = intval($torrent->seeds);
@@ -150,7 +164,7 @@ function searchForTorrent(PDO $pdo, $films) {
     }
 }
 
-$filmsFoundQuery = $pdo->query('SELECT created, title, torrent, torrentUrl FROM films WHERE found = 1;');
+$filmsFoundQuery = $pdo->query('SELECT foundDate, title, torrent, torrentUrl FROM films WHERE found = 1;');
 $filmsFoundQuery->execute();
 $filmsFound = $filmsFoundQuery->fetchAll();
 
@@ -170,7 +184,7 @@ echo "<?xml version='1.0' encoding='UTF-8'?>\n";
             <title><?php echo $film->title; ?></title>
             <link><?php echo $film->torrentUrl; ?></link>
             <description><?php echo $film->title; ?></description>
-            <pubDate><?php echo (new DateTime($film->created))->format(DATETIME::RSS); ?></pubDate>
+            <pubDate><?php echo (new DateTime($film->foundDate))->format(DATETIME::RSS); ?></pubDate>
             <enclosure url="<?php echo $film->torrentUrl; ?>" type="application/x-bittorrent" />
         </item>
 <?php
