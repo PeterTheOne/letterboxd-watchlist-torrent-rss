@@ -5,7 +5,7 @@ error_reporting(E_ERROR | E_PARSE);
 $letterboxdUsername = 'petertheone';
 
 $letterboxdUrl = 'http://letterboxd.com/' . $letterboxdUsername . '/watchlist/';
-define('KICKASSTORRENT_URL','http://kickass.to/usearch/category%3Amovies%20');
+define('KICKASSTORRENT_URL','http://kickass.so/usearch/category:movies%20');
 
 
 $dom = new DOMDocument();
@@ -69,7 +69,7 @@ $filmsNotSearchedQuery->execute();
 $filmsNotSearched = $filmsNotSearchedQuery->fetchAll();
 searchForTorrent($pdo, $filmsNotSearched);
 
-$filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY RANDOM() LIMIT 1;');
+$filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY RANDOM() LIMIT 3;');
 $filmsNotFoundQuery->execute();
 $filmsNotFound = $filmsNotFoundQuery->fetchAll();
 searchForTorrent($pdo, $filmsNotFound);
