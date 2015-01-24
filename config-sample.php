@@ -17,7 +17,14 @@ define('LIMIT_FIND_NOT_FOUND_YET', 10);
 
 define('MINIMUM_SEEDS', 4);
 
-$titleBlacklist = array(
+$titleWhitelist = array( /* one of these must be in the title */
+    '720p',
+    '1080p',
+    'bdrip',
+    'brrip'
+);
+
+$titleBlacklist = array( /* none of these may be in the title */
     'upscaled',
     'hdcam',
     'trailer',
@@ -25,7 +32,7 @@ $titleBlacklist = array(
     'ganool'
 );
 
-$pdo = new PDO('sqlite:database.sqlite3');
+$pdo = new PDO('sqlite:' . SQLITE_FILENAME);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
 
