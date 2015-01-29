@@ -5,14 +5,16 @@ include_once('config.php');
 function updateWatchlist(PDO $pdo) {
     $dom = new DOMDocument();
 
-    $contents = mb_convert_encoding(file_get_contents(LETTERBOXD_URL), 'HTML-ENTITIES', "UTF-8");
-    $dom->loadHTML($contents);
+    $contents = file_get_contents(LETTERBOXD_URL);
+    $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
+    $dom->loadHTML($contentsUTF8);
     $xpath = new DomXPath($dom);
     $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@title");
 
     $i = 1;
     $films = array();
-    while($nodes->length > 0) {
+    while($nodes->length > 0 && $contents !== false && $i < 15) {
+
         foreach ($nodes as $node) {
             /** @var $node DOMElement */
             $film = new ArrayObject();
@@ -24,8 +26,9 @@ function updateWatchlist(PDO $pdo) {
         }
         $i++;
 
-        $contents = mb_convert_encoding(file_get_contents(LETTERBOXD_URL . 'page/' . $i . '/'), 'HTML-ENTITIES', "UTF-8");
-        $dom->loadHTML($contents);
+        $contents = file_get_contents(LETTERBOXD_URL . 'page/' . $i . '/');
+        $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
+        $dom->loadHTML($contentsUTF8);
         $xpath = new DomXPath($dom);
         $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@title");
     }
@@ -65,14 +68,14 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
 
     foreach ($films as $film) {
         $site = file_get_contents(KICKASSTORRENT_URL . rawurlencode($film->title) . '/?rss=1');
-        $site = html_entity_decode($site);
-        if ($site === false || trim($site) === '') {
+        $siteDecoded = html_entity_decode($site);
+        if ($site === false || trim($siteDecoded) === '') {
             $updateSearchedStatement->bindParam(':title', $film->title);
             $updateSearchedStatement->execute();
             continue;
         }
         try {
-            $rss = new SimpleXMLElement($site, LIBXML_NOWARNING | LIBXML_NOERROR);
+            $rss = new SimpleXMLElement($siteDecoded, LIBXML_NOWARNING | LIBXML_NOERROR);
         } catch (Exception $exception) {
             $updateSearchedStatement->bindParam(':title', $film->title);
             $updateSearchedStatement->execute();
