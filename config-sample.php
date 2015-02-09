@@ -10,7 +10,7 @@ define('SQLITE_FILENAME', 'database.sqlite3');
 define('LETTERBOXD_USERNAME', ''); /* write your username here */
 define('LETTERBOXD_URL', 'http://letterboxd.com/' . LETTERBOXD_USERNAME . '/watchlist/');
 
-define('KICKASSTORRENT_URL','http://kickass.so/usearch/category:movies%20');
+define('KICKASSTORRENT_URL','http://kickass.to/usearch/category:movies%20');
 
 define('LIMIT_FIND_NOT_SEARCHED_YET', 10);
 define('LIMIT_FIND_NOT_FOUND_YET', 10);
