@@ -13,7 +13,7 @@ function updateWatchlist(PDO $pdo) {
 
     $i = 1;
     $films = array();
-    while($nodes->length > 0 && $contents !== false && $i < 15) {
+    while($nodes->length > 0 && $contents !== false && $i < 3) {
 
         foreach ($nodes as $node) {
             /** @var $node DOMElement */
@@ -30,7 +30,7 @@ function updateWatchlist(PDO $pdo) {
         $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
         $dom->loadHTML($contentsUTF8);
         $xpath = new DomXPath($dom);
-        $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@title");
+        $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@alt");
     }
 
     $insertStatement = $pdo->prepare('
