@@ -9,7 +9,7 @@ function updateWatchlist(PDO $pdo) {
     $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
     $dom->loadHTML($contentsUTF8);
     $xpath = new DomXPath($dom);
-    $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@title");
+    $nodes = $xpath->query("//div[contains(@class, 'poster')]//img/@alt");
 
     $i = 1;
     $films = array();
@@ -46,7 +46,7 @@ function updateWatchlist(PDO $pdo) {
     }
 
     $filmsTitles = array_map(function($film) { return $film->title; }, $films);
-    $deleteStatement = $pdo->query('DELETE FROM films WHERE title NOT IN ("' . implode('", "', $filmsTitles) . '")');
+    $deleteStatement = $pdo->prepare('DELETE FROM films WHERE title NOT IN ("' . implode('", "', $filmsTitles) . '")');
     if (count($filmsTitles) > 10) { /* sanity check */
         $deleteStatement->execute();
     }
@@ -137,26 +137,28 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
     }
 }
 
-/**
- * parse letterboxd
- */
+try {
+    /**
+     * parse letterboxd
+     */
+    updateWatchlist($pdo);
 
-updateWatchlist($pdo);
+    /**
+     * look for films that have not been searched for
+     */
+    $filmsNotSearchedQuery = $pdo->query('SELECT title FROM films WHERE searched = 0 ORDER BY created LIMIT ' . LIMIT_FIND_NOT_SEARCHED_YET . ';');
+    $filmsNotSearchedQuery->execute();
+    $filmsNotSearched = $filmsNotSearchedQuery->fetchAll();
+    //searchForTorrent($pdo, $titleWhitelist, $titleBlacklist, $filmsNotSearched);
 
-/**
- * look for films that have not been searched for
- */
+    /**
+     * look for films previously haven't been found
+     */
+    $filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY lastSearchDate LIMIT ' . LIMIT_FIND_NOT_FOUND_YET . ';');
+    $filmsNotFoundQuery->execute();
+    $filmsNotFound = $filmsNotFoundQuery->fetchAll();
+    //searchForTorrent($pdo, $titleWhitelist, $titleBlacklist, $filmsNotFound);
 
-$filmsNotSearchedQuery = $pdo->query('SELECT title FROM films WHERE searched = 0 ORDER BY created LIMIT ' . LIMIT_FIND_NOT_SEARCHED_YET . ';');
-$filmsNotSearchedQuery->execute();
-$filmsNotSearched = $filmsNotSearchedQuery->fetchAll();
-searchForTorrent($pdo, $titleWhitelist, $titleBlacklist, $filmsNotSearched);
-
-/**
- * look for films previously haven't been found
- */
-
-$filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY lastSearchDate LIMIT ' . LIMIT_FIND_NOT_FOUND_YET . ';');
-$filmsNotFoundQuery->execute();
-$filmsNotFound = $filmsNotFoundQuery->fetchAll();
-searchForTorrent($pdo, $titleWhitelist, $titleBlacklist, $filmsNotFound);
+} catch (PDOException $e) {
+    //return 'PDOException';
+}
