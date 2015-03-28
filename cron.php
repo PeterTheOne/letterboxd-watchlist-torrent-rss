@@ -30,7 +30,7 @@ function updateWatchlist(PDO $pdo) {
         $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
         $dom->loadHTML($contentsUTF8);
         $xpath = new DomXPath($dom);
-        $nodes = $xpath->query("//div[contains(@class, 'poster')]//a/@alt");
+        $nodes = $xpath->query("//div[contains(@class, 'poster')]//img/@alt");
     }
 
     $insertStatement = $pdo->prepare('
