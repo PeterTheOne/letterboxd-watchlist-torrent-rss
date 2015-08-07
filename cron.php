@@ -69,11 +69,11 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
     foreach ($films as $film) {
         $site = file_get_contents(KICKASSTORRENT_URL . rawurlencode($film->title) . '/?rss=1');
 		
-	// If http response header mentions that content is gzipped, then uncompress it
-	foreach($http_response_header as $c => $h) {
-		if(stristr($h, 'content-encoding') and stristr($h, 'gzip')) {
-			// Now lets uncompress the compressed data
-			$site = gzinflate( substr($site, 10, -8) );
+        // If http response header mentions that content is gzipped, then uncompress it
+        foreach($http_response_header as $c => $h) {
+            if(stristr($h, 'content-encoding') && stristr($h, 'gzip')) {
+                // Now lets uncompress the compressed data
+			    $site = gzinflate(substr($site, 10, -8));
 		}
 	}
 		
