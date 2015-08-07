@@ -74,8 +74,8 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
             if(stristr($h, 'content-encoding') && stristr($h, 'gzip')) {
                 // Now lets uncompress the compressed data
 			    $site = gzinflate(substr($site, 10, -8));
-		}
-	}
+            }
+        }
 		
         $siteDecoded = html_entity_decode($site);
         if ($site === false || trim($siteDecoded) === '') {
