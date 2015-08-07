@@ -86,15 +86,15 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
 
     foreach ($films as $film) {
         $site = file_get_contents(KICKASSTORRENT_URL . rawurlencode($film->title) . '/?rss=1');
-		
+        
         // If http response header mentions that content is gzipped, then uncompress it
         foreach($http_response_header as $c => $h) {
             if(stristr($h, 'content-encoding') && stristr($h, 'gzip')) {
                 // Now lets uncompress the compressed data
-			    $site = gzinflate(substr($site, 10, -8));
+                $site = gzinflate(substr($site, 10, -8));
             }
         }
-		
+        
         $siteDecoded = html_entity_decode($site);
         if ($site === false || trim($siteDecoded) === '') {
             $updateSearchedStatement->bindParam(':title', $film->title);
@@ -116,10 +116,18 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
             $torrent = new ArrayObject();
             $torrent->title = strtolower($torrentNode->children()->title);
             $torrent->seeds = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->seeds;
+            $torrent->size = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->contentLength;
             $torrent->torrentLink = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->magnetURI;
             $torrent->torrentUrl = $torrentUrl = $torrentNode->children()->enclosure->attributes()->{'url'};
 
+            $min_filesize = MINIMUM_FILESIZE * 1024 * 1024 * 1024;
+            $max_filesize = MAXIMUM_FILESIZE * 1024 * 1024 * 1024;
+
             if ($torrent->seeds < MINIMUM_SEEDS) {
+                continue;
+            }
+            if ( ($min_filesize > 0 && $torrent->size < $min_filesize) ||
+                ($max_filesize > 0 && $torrent->size > $max_filesize) ) {
                 continue;
             }
             $whiteWordFound = false;

@@ -20,6 +20,9 @@ define('LIMIT_FIND_NOT_FOUND_YET', 10);
 
 define('MINIMUM_SEEDS', 4);
 
+define('MINIMUM_FILESIZE', 3); /* in GB */
+define('MAXIMUM_FILESIZE', 19); /* in GB */
+
 $titleWhitelist = array( /* one of these must be in the title */
     '720p',
     '1080p',
