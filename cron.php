@@ -9,16 +9,22 @@ function updateWatchlist(PDO $pdo) {
     $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
     $dom->loadHTML($contentsUTF8);
     $xpath = new DomXPath($dom);
-    $nodes = $xpath->query("//div[contains(@class, 'poster')]//img/@alt");
+    /** @var $posterNodeList DOMNodeList */
+    $posterNodeList = $xpath->query("//div[contains(@class, 'poster')]");
 
     $i = 1;
     $films = array();
-    while($nodes->length > 0 && $contents !== false && $i < 3) {
+    while($posterNodeList->length > 0 && $contents !== false && $i <= MAX_WATCHLIST_PAGES_TO_FETCH) {
 
-        foreach ($nodes as $node) {
+        foreach($posterNodeList as $posterNode) {
+            $imgAltNode = $xpath->query("img/@alt", $posterNode)->item(0);
+            $dataFilmSlugNode = $xpath->query("@data-film-slug", $posterNode)->item(0);
+
             /** @var $node DOMElement */
             $film = new ArrayObject();
-            $film->title = trim($node->textContent);
+            $film->title = trim($imgAltNode->textContent);
+            $film->letterboxdSlug = trim($dataFilmSlugNode->textContent);
+
             if ($film->title === '') {
                 continue;
             }
@@ -30,7 +36,8 @@ function updateWatchlist(PDO $pdo) {
         $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
         $dom->loadHTML($contentsUTF8);
         $xpath = new DomXPath($dom);
-        $nodes = $xpath->query("//div[contains(@class, 'poster')]//img/@alt");
+        /** @var $posterNodeList DOMNodeList */
+        $posterNodeList = $xpath->query("//div[contains(@class, 'poster')]");
     }
 
     $insertStatement = $pdo->prepare('
@@ -40,9 +47,20 @@ function updateWatchlist(PDO $pdo) {
             :title
         );
     ');
+    $updateLetterboxdSlugStatement = $pdo->prepare('
+        UPDATE films
+            SET
+                letterboxdSlug = :letterboxdSlug
+            WHERE
+                title = :title;
+    ');
     foreach ($films as $film) {
         $insertStatement->bindParam(':title', $film->title);
         $insertStatement->execute();
+
+        $updateLetterboxdSlugStatement->bindParam(':title', $film->title);
+        $updateLetterboxdSlugStatement->bindParam(':letterboxdSlug', $film->letterboxdSlug);
+        $updateLetterboxdSlugStatement->execute();
     }
 
     $filmsTitles = array_map(function($film) { return $film->title; }, $films);
@@ -152,6 +170,7 @@ try {
      */
     updateWatchlist($pdo);
 
+    exit();
     /**
      * look for films that have not been searched for
      */

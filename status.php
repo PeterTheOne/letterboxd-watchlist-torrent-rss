@@ -2,7 +2,7 @@
 
 include_once('config.php');
 
-$filmsFoundQuery = $pdo->query('SELECT title, created, lastSearchDate, foundDate, torrent, torrentUrl FROM films ORDER BY created;');
+$filmsFoundQuery = $pdo->query('SELECT title, letterboxdSlug, created, lastSearchDate, foundDate, torrent, torrentUrl FROM films ORDER BY created;');
 $filmsFoundQuery->execute();
 $filmsFound = $filmsFoundQuery->fetchAll();
 
@@ -28,7 +28,7 @@ $filmsFound = $filmsFoundQuery->fetchAll();
                 foreach ($filmsFound as $film) {
             ?>
             <tr>
-                <td><?php echo $film->title; ?></td>
+                <td><a href="<?php echo LETTERBOXD_BASE_URL . $film->letterboxdSlug; ?>"><?php echo $film->title; ?></a></td>
                 <td><?php echo $film->created; ?></td>
                 <td><?php echo $film->lastSearchDate; ?></td>
                 <td><?php echo $film->foundDate; ?></td>
