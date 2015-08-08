@@ -23,6 +23,7 @@ $filmsFound = $filmsFoundQuery->fetchAll();
                 <th>Created</th>
                 <th>LastSearchDate</th>
                 <th>FoundDate</th>
+                <th>Torrent</th>
             </tr>
             <?php
                 foreach ($filmsFound as $film) {
@@ -32,6 +33,7 @@ $filmsFound = $filmsFoundQuery->fetchAll();
                 <td><?php echo $film->created; ?></td>
                 <td><?php echo $film->lastSearchDate; ?></td>
                 <td><?php echo $film->foundDate; ?></td>
+                <td><a href="<?php echo $film->torrent; ?>">Info</a> | <a href="<?php echo $film->torrentUrl; ?>">Download</a></td>
             </tr>
             <?php
                 }
