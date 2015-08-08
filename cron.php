@@ -2,7 +2,7 @@
 
 include_once('config.php');
 
-function updateWatchlist(PDO $pdo) {
+function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
     $dom = new DOMDocument();
 
     $contents = file_get_contents(LETTERBOXD_URL);
@@ -40,52 +40,23 @@ function updateWatchlist(PDO $pdo) {
         $posterNodeList = $xpath->query("//div[contains(@class, 'poster')]");
     }
 
-    $insertStatement = $pdo->prepare('
-        INSERT OR IGNORE INTO films (
-            title
-        ) VALUES (
-            :title
-        );
-    ');
-    $updateLetterboxdSlugStatement = $pdo->prepare('
-        UPDATE films
-            SET
-                letterboxdSlug = :letterboxdSlug
-            WHERE
-                title = :title;
-    ');
     foreach ($films as $film) {
-        $insertStatement->bindParam(':title', $film->title);
-        $insertStatement->execute();
-
-        $updateLetterboxdSlugStatement->bindParam(':title', $film->title);
-        $updateLetterboxdSlugStatement->bindParam(':letterboxdSlug', $film->letterboxdSlug);
-        $updateLetterboxdSlugStatement->execute();
+        $database->addOrIgnoreTitle($film->title);
+        $database->changeLetterboxdSlug($film->title, $film->letterboxdSlug);
     }
 
     $filmsTitles = array_map(function($film) { return $film->title; }, $films);
-    $deleteStatement = $pdo->prepare('DELETE FROM films WHERE title NOT IN ("' . implode('", "', $filmsTitles) . '")');
-    if (count($filmsTitles) > 10) { /* sanity check */
-        $deleteStatement->execute();
-    }
+    $database->removeFilmsNotInTitleList($filmsTitles);
 }
 
-function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
-    $updateSearchedStatement = $pdo->prepare('UPDATE films SET searched = 1, lastSearchDate = datetime(\'now\', \'localtime\') WHERE title = :title;');
-    $updateFoundStatement = $pdo->prepare('
-        UPDATE films
-            SET
-                foundDate = datetime(\'now\', \'localtime\'),
-                lastSearchDate = datetime(\'now\', \'localtime\'),
-                searched = 1,
-                found = 1,
-                torrent = :torrent,
-                torrentUrl = :torrentUrl
-            WHERE title = :title;
-    ');
-
+function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $titleWhitelist, $titleBlacklist, $films) {
     foreach ($films as $film) {
         $site = file_get_contents(KICKASSTORRENT_URL . rawurlencode($film->title) . '/?rss=1');
+
+        if ($site === false) {
+            $database->setSearched($film->title);
+            continue;
+        }
         
         // If http response header mentions that content is gzipped, then uncompress it
         foreach($http_response_header as $c => $h) {
@@ -97,15 +68,13 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
         
         $siteDecoded = html_entity_decode($site);
         if ($site === false || trim($siteDecoded) === '') {
-            $updateSearchedStatement->bindParam(':title', $film->title);
-            $updateSearchedStatement->execute();
+            $database->setSearched($film->title);
             continue;
         }
         try {
             $rss = new SimpleXMLElement($siteDecoded, LIBXML_NOWARNING | LIBXML_NOERROR);
         } catch (Exception $exception) {
-            $updateSearchedStatement->bindParam(':title', $film->title);
-            $updateSearchedStatement->execute();
+            $database->setSearched($film->title);
             continue;
         }
 
@@ -152,8 +121,7 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
             $torrents[] = $torrent;
         }
         if (count($torrents) === 0) {
-            $updateSearchedStatement->bindParam(':title', $film->title);
-            $updateSearchedStatement->execute();
+            $database->setSearched($film->title);
         } else {
             foreach ($torrents as $torrent) {
                 if ($torrent->seeds >= $maxSeeds) {
@@ -161,10 +129,7 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
                     echo 'max: ' . $maxSeeds . "<br />";
                     echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title .  "<br />";
                     echo '---------' . "<br />";*/
-                    $updateFoundStatement->bindParam(':torrent', $torrent->torrentLink);
-                    $updateFoundStatement->bindParam(':torrentUrl', $torrent->torrentUrl);
-                    $updateFoundStatement->bindParam(':title', $film->title);
-                    $updateFoundStatement->execute();
+                    $database->setFound($film->title, $torrent->torrentLink, $torrent->torrentUrl);
                     break;
                 }
             }
@@ -176,24 +141,19 @@ try {
     /**
      * parse letterboxd
      */
-    updateWatchlist($pdo);
+    updateWatchlist($database);
 
-    exit();
     /**
      * look for films that have not been searched for
      */
-    $filmsNotSearchedQuery = $pdo->query('SELECT title FROM films WHERE searched = 0 ORDER BY created LIMIT ' . LIMIT_FIND_NOT_SEARCHED_YET . ';');
-    $filmsNotSearchedQuery->execute();
-    $filmsNotSearched = $filmsNotSearchedQuery->fetchAll();
-    searchForTorrent($pdo, $titleWhitelist, $titleBlacklist, $filmsNotSearched);
+    $filmsNotSearched = $database->getFilmTitlesNotSearchedLimit(LIMIT_FIND_NOT_SEARCHED_YET);
+    searchForTorrent($database, $titleWhitelist, $titleBlacklist, $filmsNotSearched);
 
     /**
      * look for films previously haven't been found
      */
-    $filmsNotFoundQuery = $pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY lastSearchDate LIMIT ' . LIMIT_FIND_NOT_FOUND_YET . ';');
-    $filmsNotFoundQuery->execute();
-    $filmsNotFound = $filmsNotFoundQuery->fetchAll();
-    searchForTorrent($pdo, $titleWhitelist, $titleBlacklist, $filmsNotFound);
+    $filmsNotFound = $database->getFilmTitlesSearchedNotFoundLimit(LIMIT_FIND_NOT_FOUND_YET);
+    searchForTorrent($database, $titleWhitelist, $titleBlacklist, $filmsNotFound);
 
 } catch (PDOException $e) {
     //return 'PDOException';

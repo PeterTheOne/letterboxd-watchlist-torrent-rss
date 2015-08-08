@@ -6,9 +6,7 @@ if (POORMANSCRON) {
     include_once('cron.php');
 }
 
-$filmsFoundQuery = $pdo->query('SELECT foundDate, title, torrent, torrentUrl FROM films WHERE found = 1 ORDER BY foundDate;');
-$filmsFoundQuery->execute();
-$filmsFound = $filmsFoundQuery->fetchAll();
+$filmsFound = $database->getFoundFilmsOrderByFoundDate();
 
 header('Content-Type: application/xml; charset=utf-8');
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
@@ -23,7 +21,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         foreach ($filmsFound as $film) {
             ?>
             <item>
-                <title><?php echo $film->title; ?></title>
+                <title><?php echo $film->title . ($film->year ? ' (' . $film->year . ')' : ''); ?></title>
                 <link><?php echo $film->torrentUrl; ?></link>
                 <description><?php echo $film->title; ?></description>
                 <pubDate><?php echo (new DateTime($film->foundDate))->format(DATETIME::RSS); ?></pubDate>

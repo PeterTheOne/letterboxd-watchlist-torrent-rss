@@ -1,6 +1,14 @@
 <?php
 
-error_reporting(E_ERROR | E_PARSE);
+define('ENVIRONMENT', 'production');
+
+if (ENVIRONMENT === 'development') {
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_errors', 1);
+} else {
+    error_reporting(E_ERROR | E_PARSE);
+}
+
 set_time_limit(600); /* 5min. max execute time */
 
 define('POORMANSCRON', false); /* index.php will run cron.php on load */
@@ -38,26 +46,8 @@ $titleBlacklist = array( /* none of these may be in the title */
     'ganool'
 );
 
-try {
-    $pdo = new PDO('sqlite:' . SQLITE_FILENAME);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+include_once('DatabaseAbstract.php');
+include_once('SqliteDatabase.php');
 
-    $pdo->query('
-        CREATE TABLE IF NOT EXISTS films (
-            id INTEGER PRIMARY KEY,
-            created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            foundDate TIMESTAMP,
-            lastSearchDate TIMESTAMP,
-            title VARCHAR(255),
-            letterboxdSlug TEXT,
-            searched BOOLEAN DEFAULT 0,
-            found BOOLEAN DEFAULT 0,
-            torrent TEXT,
-            torrentUrl TEXT,
-            UNIQUE(title)
-        );
-    ');
-} catch (PDOException $e) {
-    //return 'PDOException';
-}
+$pdo = new \PDO('sqlite:' . SQLITE_FILENAME);
+$database = new LetterBoxdWatchlistRss\SqliteDatabase($pdo);
