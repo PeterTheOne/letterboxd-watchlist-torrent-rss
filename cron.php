@@ -85,100 +85,106 @@ function searchForTorrent(PDO $pdo, $titleWhitelist, $titleBlacklist, $films) {
     ');
 
     foreach ($films as $film) {
-        $site = file_get_contents(KICKASSTORRENT_URL . rawurlencode($film->title) . '/?rss=1');
-        
-        // If http response header mentions that content is gzipped, then uncompress it
-        foreach($http_response_header as $c => $h) {
-            if(stristr($h, 'content-encoding') && stristr($h, 'gzip')) {
-                // Now lets uncompress the compressed data
-                $site = gzinflate(substr($site, 10, -8));
-            }
-        }
-        
-        $siteDecoded = html_entity_decode($site);
-        if ($site === false || trim($siteDecoded) === '') {
-            $updateSearchedStatement->bindParam(':title', $film->title);
-            $updateSearchedStatement->execute();
-            continue;
-        }
-        try {
-            $rss = new SimpleXMLElement($siteDecoded, LIBXML_NOWARNING | LIBXML_NOERROR);
-        } catch (Exception $exception) {
-            $updateSearchedStatement->bindParam(':title', $film->title);
-            $updateSearchedStatement->execute();
-            continue;
-        }
-
-        //echo "<br />" . $film->title . "<br />";
-        $maxSeeds = 0;
-        $torrents = array();
-        foreach ($rss->channel->item as $torrentNode) {
-            $torrent = new ArrayObject();
-            $torrent->title = strtolower($torrentNode->children()->title);
-            $torrent->seeds = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->seeds;
-            $torrent->size = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->contentLength;
-            $torrent->torrentLink = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->magnetURI;
-            $torrent->torrentUrl = $torrentUrl = $torrentNode->children()->enclosure->attributes()->{'url'};
-
-            $min_filesize = MINIMUM_FILESIZE * 1024 * 1024 * 1024;
-            $max_filesize = MAXIMUM_FILESIZE * 1024 * 1024 * 1024;
-
-            if ($torrent->seeds < MINIMUM_SEEDS) {
-                continue;
-            }
-            if ( ($min_filesize > 0 && $torrent->size < $min_filesize) ||
-                ($max_filesize > 0 && $torrent->size > $max_filesize) ) {
-                continue;
-            }
-            $whiteWordFound = false;
-            foreach ($titleWhitelist as $word) {
-                if (strpos($torrent->title, $word) !== false) {
-                    $whiteWordFound = true;
-                    break;
-                }
-            }
-            if (!$whiteWordFound) {
-                continue; /* continue outer loop if no word is found */
-            }
-            foreach ($titleBlacklist as $word) {
-                if (strpos($torrent->title, $word) !== false) {
-                    continue 2; /* continue outer loop if word is found */
-                }
-            }
-            //echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title .  "<br />";
-            if (intval($torrent->seeds) > $maxSeeds) {
-                $maxSeeds = intval($torrent->seeds);
-            }
-            $torrents[] = $torrent;
-        }
-        if (count($torrents) === 0) {
-            $updateSearchedStatement->bindParam(':title', $film->title);
-            $updateSearchedStatement->execute();
-        } else {
-            foreach ($torrents as $torrent) {
-                if ($torrent->seeds >= $maxSeeds) {
-                    /*echo '---------' . "<br />";
-                    echo 'max: ' . $maxSeeds . "<br />";
-                    echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title .  "<br />";
-                    echo '---------' . "<br />";*/
-                    $updateFoundStatement->bindParam(':torrent', $torrent->torrentLink);
-                    $updateFoundStatement->bindParam(':torrentUrl', $torrent->torrentUrl);
-                    $updateFoundStatement->bindParam(':title', $film->title);
-                    $updateFoundStatement->execute();
-                    break;
-                }
-            }
-        }
+		$torrents = parseTorrentResults($pdo, $titleWhitelist, $titleBlacklist, $film);
+		
+		if ($torrents === false) {
+			$updateSearchedStatement->bindParam(':title', $film->title);
+			$updateSearchedStatement->execute();
+		} else {
+			foreach ($torrents as $torrent) {
+				if ($torrent->seeds >= $maxSeeds) {
+					echo '---------' . "<br />";
+					echo 'max: ' . $maxSeeds . "<br />";
+					echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title .  "<br />";
+					echo '---------' . "<br />";
+					$updateFoundStatement->bindParam(':torrent', $torrent->torrentLink);
+					$updateFoundStatement->bindParam(':torrentUrl', $torrent->torrentUrl);
+					$updateFoundStatement->bindParam(':title', $film->title);
+					//$updateFoundStatement->execute();
+					break;
+				}
+			}
+		}
     }
+}
+
+function parseTorrentResults(PDO $pdo, $titleWhitelist, $titleBlacklist, $film) {
+	$site = file_get_contents(KICKASSTORRENT_URL . rawurlencode($film->title) . '/?rss=1');
+	
+	// If http response header mentions that content is gzipped, then uncompress it
+	foreach($http_response_header as $c => $h) {
+		if(stristr($h, 'content-encoding') && stristr($h, 'gzip')) {
+			// Now lets uncompress the compressed data
+			$site = gzinflate(substr($site, 10, -8));
+		}
+	}
+	
+	$siteDecoded = html_entity_decode($site);
+	if ($site === false || trim($siteDecoded) === '') {
+		return false;
+	}
+	try {
+		$rss = new SimpleXMLElement($siteDecoded, LIBXML_NOWARNING | LIBXML_NOERROR);
+	} catch (Exception $exception) {
+		return false;
+	}
+
+	echo "<br />" . $film->title . "<br />";
+	$maxSeeds = 0;
+	$torrents = array();
+	foreach ($rss->channel->item as $torrentNode) {
+		$torrent = new ArrayObject();
+		$torrent->title = strtolower($torrentNode->children()->title);
+		$torrent->seeds = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->seeds;
+		$torrent->size = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->contentLength;
+		$torrent->torrentLink = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->magnetURI;
+		$torrent->torrentUrl = $torrentUrl = $torrentNode->children()->enclosure->attributes()->{'url'};
+
+		$min_filesize = MINIMUM_FILESIZE * 1024 * 1024 * 1024;
+		$max_filesize = MAXIMUM_FILESIZE * 1024 * 1024 * 1024;
+
+		if ($torrent->seeds < MINIMUM_SEEDS) {
+			continue;
+		}
+		if ( ($min_filesize > 0 && $torrent->size < $min_filesize) ||
+			($max_filesize > 0 && $torrent->size > $max_filesize) ) {
+			continue;
+		}
+		$whiteWordFound = false;
+		foreach ($titleWhitelist as $word) {
+			if (strpos($torrent->title, $word) !== false) {
+				$whiteWordFound = true;
+				break;
+			}
+		}
+		if (!$whiteWordFound) {
+			continue; /* continue outer loop if no word is found */
+		}
+		foreach ($titleBlacklist as $word) {
+			if (strpos($torrent->title, $word) !== false) {
+				continue 2; /* continue outer loop if word is found */
+			}
+		}
+		echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title .  "<br />";
+		if (intval($torrent->seeds) > $maxSeeds) {
+			$maxSeeds = intval($torrent->seeds);
+		}
+		$torrents[] = $torrent;
+	}
+	if (count($torrents) === 0) {
+		return false;
+	} else {
+		return $torrents;
+	}
 }
 
 try {
     /**
      * parse letterboxd
      */
-    updateWatchlist($pdo);
+    //updateWatchlist($pdo);
 
-    exit();
+    //exit();
     /**
      * look for films that have not been searched for
      */
