@@ -76,7 +76,10 @@ function updateYear(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $filmsWi
 
 function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $sites, $titleWhitelist, $titleBlacklist, $films) {
     foreach ($films as $film) {
-        if (ENVIRONMENT === 'development') echo "<br />" . $film->title . ($film->year ? ' (' . $film->year . ')' : '') . "<br />";
+        if (ENVIRONMENT === 'development') {
+            echo '<br />' . $film->title . ($film->year ? ' (' . $film->year . ')' : '') . '<br />';
+            echo 'min seeds: ' . MINIMUM_SEEDS . ', min size: ' . MINIMUM_FILESIZE . 'GB <br />';
+        }
         $torrents = searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film);
         
         if ($torrents === false) {
@@ -166,7 +169,12 @@ function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchPars
 
 function filterTorrents($titleWhitelist, $titleBlacklist, $torrents) {
     $filteredTorrents = array();
+    $logTorrent = '';
     foreach ($torrents as $torrent) {
+        if (ENVIRONMENT === 'development') {
+            if($logTorrent) echo $logTorrent . '<br />';
+            $logTorrent = 'seeds: ' . $torrent->seeds . ', size: ' . $torrent->size . ', title: ' . $torrent->title;
+        }
 
         $min_filesize = MINIMUM_FILESIZE * 1024 * 1024 * 1024;
         $max_filesize = MAXIMUM_FILESIZE * 1024 * 1024 * 1024;
@@ -194,7 +202,7 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $torrents) {
             }
         }
         if (ENVIRONMENT === 'development')
-            echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title . '<br />';
+            $logTorrent = '<strong>' . $logTorrent . '</strong>';
         $filteredTorrents[] = $torrent;
     }
     return $filteredTorrents;
