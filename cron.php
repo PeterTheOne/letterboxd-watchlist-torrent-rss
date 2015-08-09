@@ -1,8 +1,8 @@
 <?php
 
 include_once('config.php');
-include_once('parsers/kat.php');
-include_once('parsers/extratorrent.php');
+include_once('parsers/KickassTorrentsParser.php');
+include_once('parsers/ExtraTorrentParser.php');
 
 function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
     $dom = new DOMDocument();
@@ -71,7 +71,7 @@ function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $s
             echo 'max seeds: ' . $maxSeeds . "<br />";
             echo 'seeds: ' . $bestTorrent->seeds .', title: ' . $bestTorrent->title . '<br />';
             echo '---------' . "<br />";*/
-            $database->setFound($film->title, $torrent->torrentLink, $torrent->torrentUrl);
+            $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile);
         }
     }
 }
@@ -83,11 +83,11 @@ function searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film) {
         switch ($site) {
             case 'kickasstorrents':
                 //echo '--- site: ' . $site . "<br />";
-                $site = new KickassTorrents();
+                $site = new KickassTorrentsParser();
                 break;
             case 'extratorrent':
                 //echo '--- site: ' . $site . "<br />";
-                $site = new ExtraTorrent();
+                $site = new ExtraTorrentParser();
                 break;
             default:
                 continue 2; // unknown parameter, try next site

@@ -22,10 +22,15 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
             ?>
             <item>
                 <title><?php echo $film->title . ($film->year ? ' (' . $film->year . ')' : ''); ?></title>
-                <link><?php echo $film->torrentUrl; ?></link>
                 <description><?php echo $film->title; ?></description>
                 <pubDate><?php echo (new DateTime($film->foundDate))->format(DATETIME::RSS); ?></pubDate>
-                <enclosure url="<?php echo $film->torrentUrl; ?>" length="" type="application/x-bittorrent" />
+<?php if ($film->torrentMagnet) {?>
+                <torrent:magnetURI><![CDATA[<?php echo $film->torrentMagnet; ?>]]></torrent:magnetURI>
+<?php }?>
+<?php if ($film->torrentFile) {?>
+                <link><?php echo $film->torrentFile; ?></link>
+                <enclosure url="<?php echo $film->torrentFile; ?>" length="" type="application/x-bittorrent" />
+<?php }?>
             </item>
         <?php
         }
