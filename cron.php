@@ -76,7 +76,7 @@ function updateYear(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $filmsWi
 
 function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $sites, $titleWhitelist, $titleBlacklist, $films) {
     foreach ($films as $film) {
-        //echo "<br />" . $film->title . "<br />";
+        if (ENVIRONMENT === 'development') echo "<br />" . $film->title . ($film->year ? ' (' . $film->year . ')' : '') . "<br />";
         $torrents = searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film);
         
         if ($torrents === false) {
@@ -90,6 +90,12 @@ function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $s
                 }
             }
             if (isset($bestTorrent)) {
+                if (ENVIRONMENT === 'development') {
+                    echo '---------' . "<br />";
+                    echo 'max seeds: ' . $maxSeeds . "<br />";
+                    echo 'seeds: ' . $bestTorrent->seeds .', title: ' . $bestTorrent->title . '<br />';
+                    echo '---------' . "<br />";
+                }
                 $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile);
             }
         }
@@ -102,11 +108,11 @@ function searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film) {
     foreach ($sites as $site) {
         switch ($site) {
             case 'kickasstorrents':
-                //echo '--- site: ' . $site . "<br />";
+                if (ENVIRONMENT === 'development') echo '--- site: ' . $site . "<br />";
                 $site = new KickassTorrentsParser();
                 break;
             case 'extratorrent':
-                //echo '--- site: ' . $site . "<br />";
+                if (ENVIRONMENT === 'development') echo '--- site: ' . $site . "<br />";
                 $site = new ExtraTorrentParser();
                 break;
             default:
@@ -187,7 +193,8 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $torrents) {
                 continue 2; /* continue outer loop if word is found */
             }
         }
-        //echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title . '<br />';
+        if (ENVIRONMENT === 'development')
+            echo 'seeds: ' . $torrent->seeds .', title: ' . $torrent->title . '<br />';
         $filteredTorrents[] = $torrent;
     }
     return $filteredTorrents;

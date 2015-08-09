@@ -8,6 +8,11 @@ class ExtraTorrentParser extends TorrentSearchParserAbstract
     public $searchURL = 'http://extratorrent.cc/rss.xml?type=search&cid=4&search=%s%%20%s';
 
     public function getSearchURL($title, $year) {
+        // Remove all characters except A-Z, a-z, 0-9, dots, hyphens and spaces
+        // Note that the hyphen must go last not to be confused with a range (A-Z)
+        // and the dot, being special, is escaped with \
+        $title = preg_replace('/[^A-Za-z0-9\. -]/', '', $title);
+
         return sprintf($this->searchURL, rawurlencode($title), rawurlencode($year));
     }
 

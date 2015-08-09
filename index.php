@@ -28,8 +28,8 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
                 <torrent:magnetURI><![CDATA[<?php echo $film->torrentMagnet; ?>]]></torrent:magnetURI>
 <?php }?>
 <?php if ($film->torrentFile) {?>
-                <link><?php echo $film->torrentFile; ?></link>
-                <enclosure url="<?php echo $film->torrentFile; ?>" length="" type="application/x-bittorrent" />
+                <link><![CDATA[<?php echo $film->torrentFile; ?>]]></link>
+                <enclosure url="<?php echo htmlspecialchars($film->torrentFile); ?>" length="" type="application/x-bittorrent" />
 <?php }?>
             </item>
         <?php
