@@ -87,4 +87,16 @@ abstract class DatabaseAbstract {
      */
     abstract public function setFound($title, $torrentInfo, $torrentMagnet, $torrentFile);
 
+    /**
+     * @return mixed
+     */
+    abstract public function getFilmsWithoutYearNotFound();
+
+    /**
+     * @param $title
+     * @param $year
+     * @return mixed
+     */
+    abstract public function changeYear($title, $year);
+
 }

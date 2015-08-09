@@ -49,6 +49,29 @@ function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
 
     $filmsTitles = array_map(function($film) { return $film->title; }, $films);
     $database->removeFilmsNotInTitleList($filmsTitles);
+
+    updateYear($database);
+}
+
+function updateYear(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $filmsWithoutYear = null) {
+    if (!$filmsWithoutYear) {
+        $filmsWithoutYear = $database->getFilmsWithoutYearNotFound();
+    }
+
+    $dom = new DOMDocument();
+    foreach ($filmsWithoutYear as $film) {
+        if ($film->year) {
+            continue;
+        }
+        $contents = file_get_contents(LETTERBOXD_BASE_URL . '/ajax/poster' . $film->letterboxdSlug . 'menu/linked/125x187/');
+        $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
+        $dom->loadHTML($contentsUTF8);
+        $xpath = new DomXPath($dom);
+        /** @var $posterNodeList DOMNodeList */
+        $yearNode = $xpath->query("//div[contains(@class, 'poster')]/@data-film-release-year")->item(0);
+        $year = trim($yearNode->textContent);
+        $database->changeYear($film->title, $year);
+    }
 }
 
 function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $sites, $titleWhitelist, $titleBlacklist, $films) {
@@ -66,12 +89,9 @@ function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $s
                     $bestTorrent = $torrent;
                 }
             }
-
-            /*echo '---------' . "<br />";
-            echo 'max seeds: ' . $maxSeeds . "<br />";
-            echo 'seeds: ' . $bestTorrent->seeds .', title: ' . $bestTorrent->title . '<br />';
-            echo '---------' . "<br />";*/
-            $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile);
+            if (isset($bestTorrent)) {
+                $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile);
+            }
         }
     }
 }
@@ -109,8 +129,8 @@ function searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film) {
     }
 }
 
-function parseTorrentResults($titleWhitelist, $titleBlacklist, $site, $film) {
-    $content = file_get_contents( $site->getSearchURL($film->title) );
+function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchParserAbstract $site, $film) {
+    $content = file_get_contents( $site->getSearchURL($film->title, $film->year) );
 
     if ($content === false) {
         return false;

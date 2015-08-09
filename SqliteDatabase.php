@@ -24,6 +24,11 @@ class SqliteDatabase extends DatabaseAbstract {
      */
     private $setFoundStatement = null;
 
+    /**
+     * @var \PDOStatement $changeYearStatement
+     */
+    private $changeYearStatement = null;
+
     protected function setupDatabase() {
         try {
             $this->pdo->query('
@@ -207,13 +212,13 @@ class SqliteDatabase extends DatabaseAbstract {
             $filmsFoundQuery = $this->pdo->query('SELECT title, year, letterboxdSlug, found, created, lastSearchDate, foundDate, torrentInfo, torrentMagnet, torrentFile FROM films ORDER BY created;');
             return $filmsFoundQuery->fetchAll();
         } catch (\PDOException $exception) {
-            throw new \Exception('Could not get films:' . $exception->getMessage());
+            throw new \Exception('Could not get films.');
         }
     }
 
     public function getFilmTitlesNotSearchedLimit($limit) {
         try {
-            $filmsNotSearchedQuery = $this->pdo->query('SELECT title FROM films WHERE searched = 0 ORDER BY created LIMIT ' . $limit . ';');
+            $filmsNotSearchedQuery = $this->pdo->query('SELECT title, year FROM films WHERE searched = 0 ORDER BY created LIMIT ' . $limit . ';');
             return $filmsNotSearchedQuery->fetchAll();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not get film titles not searched.');
@@ -222,7 +227,7 @@ class SqliteDatabase extends DatabaseAbstract {
 
     public function getFilmTitlesSearchedNotFoundLimit($limit) {
         try {
-            $filmsNotFoundQuery = $this->pdo->query('SELECT title FROM films WHERE searched = 1 AND found = 0 ORDER BY lastSearchDate LIMIT ' . $limit . ';');
+            $filmsNotFoundQuery = $this->pdo->query('SELECT title, year FROM films WHERE searched = 1 AND found = 0 ORDER BY lastSearchDate LIMIT ' . $limit . ';');
             return $filmsNotFoundQuery->fetchAll();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not get film titles searched, not found.');
@@ -320,6 +325,35 @@ class SqliteDatabase extends DatabaseAbstract {
             $this->setFoundStatement->execute();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not set found.');
+        }
+    }
+
+    public function getFilmsWithoutYearNotFound() {
+        try {
+            $filmsWithoutYearNotFound = $this->pdo->query('SELECT title, letterboxdSlug, year FROM films WHERE found = 0 AND (year IS null OR year = \'\');');
+            return $filmsWithoutYearNotFound->fetchAll();
+        } catch (\PDOException $exception) {
+            throw new \Exception('Could not get films without year, not found.');
+        }
+    }
+
+    public function changeYear($title, $year) {
+        try {
+            if (!$this->changeYearStatement) {
+                $this->changeYearStatement = $this->pdo->prepare('
+                    UPDATE films
+                        SET
+                            year = :year
+                        WHERE
+                            title = :title;
+                ');
+            }
+
+            $this->changeYearStatement->bindParam(':title', $title);
+            $this->changeYearStatement->bindParam(':year', $year);
+            $this->changeYearStatement->execute();
+        } catch (\PDOException $exception) {
+            throw new \Exception('Could not get films without year, not found.');
         }
     }
 

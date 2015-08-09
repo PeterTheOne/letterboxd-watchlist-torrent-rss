@@ -5,10 +5,10 @@ include_once('TorrentSearchParserAbstract.php');
 class ExtraTorrentParser extends TorrentSearchParserAbstract
 {
     /* escape "%" with another "%", "%s" is where the title goes */
-    public $searchURL = 'http://extratorrent.cc/rss.xml?type=search&cid=4&search=%s';
+    public $searchURL = 'http://extratorrent.cc/rss.xml?type=search&cid=4&search=%s%%20%s';
 
-    public function getSearchURL($title) {
-        return sprintf($this->searchURL, urlencode($title));
+    public function getSearchURL($title, $year) {
+        return sprintf($this->searchURL, rawurlencode($title), rawurlencode($year));
     }
 
     public function parseResults(\SimpleXMLElement $rss) {
@@ -20,6 +20,7 @@ class ExtraTorrentParser extends TorrentSearchParserAbstract
             $torrent->size = $torrentNode->children()->size;
             $torrent->torrentInfo = $torrentNode->children()->link;
             $torrent->torrentFile = $torrentNode->children()->enclosure->attributes()->{'url'};
+            $torrent->torrentMagnet = '';
             $results[] = $torrent;
         }
         return $results;

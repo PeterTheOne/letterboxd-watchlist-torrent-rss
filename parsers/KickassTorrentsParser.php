@@ -5,10 +5,10 @@ include_once('TorrentSearchParserAbstract.php');
 class KickassTorrentsParser extends TorrentSearchParserAbstract
 {
     /* escape "%" with another "%", "%s" is where the title goes */
-    public $searchURL = 'https://kat.cr/usearch/category:movies%%20%s/?rss=1';
+    public $searchURL = 'https://kat.cr/usearch/category:movies%%20%s%%20%s/?rss=1';
 
-    public function getSearchURL($title) {
-        return sprintf($this->searchURL, rawurlencode($title));
+    public function getSearchURL($title, $year) {
+        return sprintf($this->searchURL, rawurlencode($title), rawurlencode($year));
     }
 
     public function parseResults(\SimpleXMLElement $rss) {
