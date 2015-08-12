@@ -45,6 +45,7 @@ class SqliteDatabase extends DatabaseAbstract {
                     torrentInfo TEXT,
                     torrentMagnet TEXT,
                     torrentFile TEXT,
+                    torrentSize BIGINT,
                     UNIQUE(title)
                 );
             ');
@@ -196,11 +197,25 @@ class SqliteDatabase extends DatabaseAbstract {
         } catch (\PDOException $exception) {
             throw new \Exception('Could not update table (add torrentFile).');
         }
+
+        try {
+            $filterTorrentSize = array_filter($tableInfo, function($var) {
+                return $var->name === 'torrentSize';
+            });
+
+            if (empty($filterTorrentSize)) {
+                $this->pdo->query('
+                    ALTER TABLE films ADD COLUMN torrentSize BIGINT;
+                ');
+            }
+        } catch (\PDOException $exception) {
+            throw new \Exception('Could not update table (add torrentSize).');
+        }
     }
 
     public function getFoundFilmsOrderByFoundDate() {
         try {
-            $filmsFoundQuery = $this->pdo->query('SELECT foundDate, title, year, torrentMagnet, torrentFile FROM films WHERE found = 1 ORDER BY foundDate;');
+            $filmsFoundQuery = $this->pdo->query('SELECT foundDate, title, year, torrentInfo, torrentMagnet, torrentFile, torrentSize FROM films WHERE found = 1 ORDER BY foundDate;');
             return $filmsFoundQuery->fetchAll();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not get found films.');
@@ -209,7 +224,7 @@ class SqliteDatabase extends DatabaseAbstract {
 
     public function getFilmsOrderByCreated() {
         try {
-            $filmsFoundQuery = $this->pdo->query('SELECT title, year, letterboxdSlug, found, created, lastSearchDate, foundDate, torrentInfo, torrentMagnet, torrentFile FROM films ORDER BY created;');
+            $filmsFoundQuery = $this->pdo->query('SELECT title, year, letterboxdSlug, found, created, lastSearchDate, foundDate, torrentInfo, torrentMagnet, torrentFile, torrentSize FROM films ORDER BY created;');
             return $filmsFoundQuery->fetchAll();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not get films.');
@@ -300,7 +315,7 @@ class SqliteDatabase extends DatabaseAbstract {
         }
     }
 
-    public function setFound($title, $torrentInfo, $torrentMagnet, $torrentFile) {
+    public function setFound($title, $torrentInfo, $torrentMagnet, $torrentFile, $torrentSize) {
         try {
             if (!$this->setFoundStatement) {
                 $this->setFoundStatement = $this->pdo->prepare('
@@ -312,7 +327,8 @@ class SqliteDatabase extends DatabaseAbstract {
                             found = 1,
                             torrentInfo = :torrentInfo,
                             torrentMagnet = :torrentMagnet,
-                            torrentFile = :torrentFile
+                            torrentFile = :torrentFile,
+                            torrentSize = :torrentSize
                         WHERE
                             title = :title;
                 ');
@@ -321,6 +337,7 @@ class SqliteDatabase extends DatabaseAbstract {
             $this->setFoundStatement->bindParam(':torrentInfo', $torrentInfo);
             $this->setFoundStatement->bindParam(':torrentMagnet', $torrentMagnet);
             $this->setFoundStatement->bindParam(':torrentFile', $torrentFile);
+            $this->setFoundStatement->bindParam(':torrentSize', $torrentSize);
             $this->setFoundStatement->bindParam(':title', $title);
             $this->setFoundStatement->execute();
         } catch (\PDOException $exception) {

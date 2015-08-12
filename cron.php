@@ -99,7 +99,7 @@ function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $s
                     echo 'seeds: ' . $bestTorrent->seeds .', title: ' . $bestTorrent->title . '<br />';
                     echo '---------' . "<br />";
                 }
-                $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile);
+                $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile, $bestTorrent->size);
             }
         }
     }
