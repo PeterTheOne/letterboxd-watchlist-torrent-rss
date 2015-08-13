@@ -42,7 +42,9 @@ class SqliteDatabase extends DatabaseAbstract {
                     letterboxdSlug TEXT,
                     searched BOOLEAN DEFAULT 0,
                     found BOOLEAN DEFAULT 0,
+                    torrentTitle TEXT,
                     torrentInfo TEXT,
+                    torrentInfoHash VARCHAR(40),
                     torrentMagnet TEXT,
                     torrentFile TEXT,
                     torrentSize BIGINT,
@@ -147,6 +149,20 @@ class SqliteDatabase extends DatabaseAbstract {
         }
 
         try {
+            $filtertorrentTitle = array_filter($tableInfo, function($var) {
+                return $var->name === 'torrentTitle';
+            });
+
+            if (empty($filtertorrentTitle)) {
+                $this->pdo->query('
+                    ALTER TABLE films ADD COLUMN torrentTitle TEXT;
+                ');
+            }
+        } catch (\PDOException $exception) {
+            throw new \Exception('Could not update table (add torrentTitle).');
+        }
+
+        try {
             $filterTorrentInfo = array_filter($tableInfo, function($var) {
                 return $var->name === 'torrentInfo';
             });
@@ -158,6 +174,20 @@ class SqliteDatabase extends DatabaseAbstract {
             }
         } catch (\PDOException $exception) {
             throw new \Exception('Could not update table (add torrentInfo).');
+        }
+
+        try {
+            $filterTorrentInfoHash = array_filter($tableInfo, function($var) {
+                return $var->name === 'torrentInfoHash';
+            });
+
+            if (empty($filterTorrentInfoHash)) {
+                $this->pdo->query('
+                    ALTER TABLE films ADD COLUMN torrentInfoHash VARCHAR(40);
+                ');
+            }
+        } catch (\PDOException $exception) {
+            throw new \Exception('Could not update table (add torrentInfoHash).');
         }
 
         try {
@@ -215,7 +245,7 @@ class SqliteDatabase extends DatabaseAbstract {
 
     public function getFoundFilmsOrderByFoundDate() {
         try {
-            $filmsFoundQuery = $this->pdo->query('SELECT foundDate, title, year, torrentInfo, torrentMagnet, torrentFile, torrentSize FROM films WHERE found = 1 ORDER BY foundDate;');
+            $filmsFoundQuery = $this->pdo->query('SELECT foundDate, title, year, torrentTitle, torrentInfo, torrentInfoHash, torrentMagnet, torrentFile, torrentSize FROM films WHERE found = 1 ORDER BY foundDate;');
             return $filmsFoundQuery->fetchAll();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not get found films.');
@@ -224,7 +254,7 @@ class SqliteDatabase extends DatabaseAbstract {
 
     public function getFilmsOrderByCreated() {
         try {
-            $filmsFoundQuery = $this->pdo->query('SELECT title, year, letterboxdSlug, found, created, lastSearchDate, foundDate, torrentInfo, torrentMagnet, torrentFile, torrentSize FROM films ORDER BY created;');
+            $filmsFoundQuery = $this->pdo->query('SELECT title, year, letterboxdSlug, found, created, lastSearchDate, foundDate, torrentTitle, torrentInfo, torrentInfoHash, torrentMagnet, torrentFile, torrentSize FROM films ORDER BY created;');
             return $filmsFoundQuery->fetchAll();
         } catch (\PDOException $exception) {
             throw new \Exception('Could not get films.');
@@ -315,7 +345,7 @@ class SqliteDatabase extends DatabaseAbstract {
         }
     }
 
-    public function setFound($title, $torrentInfo, $torrentMagnet, $torrentFile, $torrentSize) {
+    public function setFound($title, $torrentTitle, $torrentInfo, $torrentInfoHash, $torrentMagnet, $torrentFile, $torrentSize) {
         try {
             if (!$this->setFoundStatement) {
                 $this->setFoundStatement = $this->pdo->prepare('
@@ -325,7 +355,9 @@ class SqliteDatabase extends DatabaseAbstract {
                             lastSearchDate = datetime(\'now\', \'localtime\'),
                             searched = 1,
                             found = 1,
+                            torrentTitle = :torrentTitle,
                             torrentInfo = :torrentInfo,
+                            torrentInfoHash = :torrentInfoHash,
                             torrentMagnet = :torrentMagnet,
                             torrentFile = :torrentFile,
                             torrentSize = :torrentSize
@@ -334,7 +366,9 @@ class SqliteDatabase extends DatabaseAbstract {
                 ');
             }
 
+            $this->setFoundStatement->bindParam(':torrentTitle', $torrentTitle);
             $this->setFoundStatement->bindParam(':torrentInfo', $torrentInfo);
+            $this->setFoundStatement->bindParam(':torrentInfoHash', $torrentInfoHash);
             $this->setFoundStatement->bindParam(':torrentMagnet', $torrentMagnet);
             $this->setFoundStatement->bindParam(':torrentFile', $torrentFile);
             $this->setFoundStatement->bindParam(':torrentSize', $torrentSize);

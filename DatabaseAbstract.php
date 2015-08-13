@@ -86,7 +86,7 @@ abstract class DatabaseAbstract {
      * @param $torrentSize
      * @return mixed
      */
-    abstract public function setFound($title, $torrentInfo, $torrentMagnet, $torrentFile, $torrentSize);
+    abstract public function setFound($title, $torrentTitle, $torrentInfo, $torrentInfoHash, $torrentMagnet, $torrentFile, $torrentSize);
 
     /**
      * @return mixed

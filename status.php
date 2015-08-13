@@ -21,7 +21,8 @@ $filmsFound = $database->getFilmsOrderByCreated();
                 <th>Created</th>
                 <th>LastSearchDate</th>
                 <th>FoundDate</th>
-                <th>Torrent</th>
+                <th>Links</th>
+                <th>Torrent Title</th>
             </tr>
             <?php
                 foreach ($filmsFound as $film) {
@@ -37,11 +38,12 @@ $filmsFound = $database->getFilmsOrderByCreated();
                 <td><?php echo $film->foundDate; ?></td>
                 <td>
                     <?php if ($film->found) { ?>
-                    <a href="<?php echo $film->torrentInfo; ?>">Info</a> |
-                        <a href="<?php echo $film->torrentMagnet; ?>">Magnet</a> |
-                        <a href="<?php echo $film->torrentFile; ?>">File</a>
+                        <?php if ($film->torrentInfo) : ?><a href="<?php echo $film->torrentInfo; ?>">Info</a> |<?php endif; ?>
+                        <?php if ($film->torrentMagnet) : ?><a href="<?php echo $film->torrentMagnet; ?>">Magnet</a> |<?php endif; ?>
+                        <?php if ($film->torrentFile) : ?><a href="<?php echo $film->torrentFile; ?>">File</a><?php endif; ?>
                     <?php } ?>
                 </td>
+                <td><?php echo $film->torrentTitle; ?></td>
             </tr>
             <?php
                 }

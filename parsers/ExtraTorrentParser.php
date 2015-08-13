@@ -20,13 +20,15 @@ class ExtraTorrentParser extends TorrentSearchParserAbstract
         $results = array();
         foreach ($rss->channel->item as $torrentNode) {
             $torrent = new ArrayObject();
-            $torrent->title = strtolower($torrentNode->children()->title);
+            $torrent->title = $torrentNode->children()->title;
             $torrent->seeds = $torrentNode->children()->seeders;
             $torrent->size = $torrentNode->children()->size;
             $torrent->torrentInfo = $torrentNode->children()->link;
-            $torrent->torrentFile = $torrentNode->children()->enclosure->attributes()->{'url'};
-            $torrent->torrentMagnet = '';
-            $results[] = $torrent;
+            $torrent->torrentInfoHash = $torrentNode->children()->info_hash;
+            $torrent->torrentFile = ($torrentNode->children()->enclosure && $torrentNode->children()->enclosure->attributes()) ? $torrentNode->children()->enclosure->attributes()->{'url'} : '';
+            $torrent->torrentMagnet = ($torrent->torrentInfoHash) ? 'magnet:?xt=urn:btih:' . $torrent->torrentInfoHash : '';
+            if ($torrent->torrentFile || $torrent->torrentMagnet)
+                $results[] = $torrent;
         }
         return $results;
     }

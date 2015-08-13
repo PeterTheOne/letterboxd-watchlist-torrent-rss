@@ -20,13 +20,15 @@ class KickassTorrentsParser extends TorrentSearchParserAbstract
         $results = array();
         foreach ($rss->channel->item as $torrentNode) {
             $torrent = new ArrayObject();
-            $torrent->title = strtolower($torrentNode->children()->title);
+            $torrent->title = $torrentNode->children()->title;
             $torrent->seeds = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->seeds;
             $torrent->size = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->contentLength;
             $torrent->torrentInfo = $torrentNode->children()->link;
+            $torrent->torrentInfoHash = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->infoHash;
             $torrent->torrentFile = $torrentNode->children()->enclosure->attributes()->{'url'};
             $torrent->torrentMagnet = $torrentNode->children('http://xmlns.ezrss.it/0.1/')->magnetURI;
-            $results[] = $torrent;
+            if ($torrent->torrentFile || $torrent->torrentMagnet)
+                $results[] = $torrent;
         }
         return $results;
     }

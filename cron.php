@@ -92,14 +92,14 @@ function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $s
                     $bestTorrent = $torrent;
                 }
             }
-            if (isset($bestTorrent)) {
+            if (isset($bestTorrent) && ($bestTorrent->torrentFile || $bestTorrent->torrentMagnet)) {
                 if (ENVIRONMENT === 'development') {
                     echo '---------' . "<br />";
                     echo 'max seeds: ' . $maxSeeds . "<br />";
                     echo 'seeds: ' . $bestTorrent->seeds .', title: ' . $bestTorrent->title . '<br />';
                     echo '---------' . "<br />";
                 }
-                $database->setFound($film->title, $bestTorrent->torrentInfo, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile, $bestTorrent->size);
+                $database->setFound($film->title, $bestTorrent->title, $bestTorrent->torrentInfo, $bestTorrent->torrentInfoHash, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile, $bestTorrent->size);
             }
         }
     }
