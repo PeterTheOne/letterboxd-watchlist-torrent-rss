@@ -4,11 +4,10 @@ abstract class TorrentSearchParserAbstract
 {
 
     /**
-     * @param $title
-     * @param $year
+     * @param $searchTerms
      * @return mixed
      */
-    abstract public function getSearchURL($title, $year);
+    abstract public function getSearchURL($searchTerms);
 
     /**
      * @param SimpleXMLElement $rss

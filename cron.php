@@ -139,7 +139,12 @@ function searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film) {
 }
 
 function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchParserAbstract $site, $film) {
-    $content = file_get_contents( $site->getSearchURL($film->title, $film->year) );
+    // Remove all characters except A-Z, a-z, 0-9, dots, hyphens and spaces
+    // Note that the hyphen must go last not to be confused with a range (A-Z)
+    // and the dot, being special, is escaped with \
+    $searchTerms = preg_replace('/[^A-Za-z0-9\. -]/', '', $film->title . ' ' . $film->year);
+
+    $content = file_get_contents( $site->getSearchURL($searchTerms) );
 
     if ($content === false) {
         return false;
@@ -164,12 +169,13 @@ function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchPars
     }
 
     $torrents = $site->parseResults($rss);
-    return filterTorrents($titleWhitelist, $titleBlacklist, $torrents);
+    return filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrents);
 }
 
-function filterTorrents($titleWhitelist, $titleBlacklist, $torrents) {
+function filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrents) {
     $filteredTorrents = array();
     $logTorrent = '';
+    $searchTerms = explode(" ", $searchTerms);
     foreach ($torrents as $torrent) {
         if (ENVIRONMENT === 'development') {
             if($logTorrent) echo $logTorrent . '<br />';
@@ -186,9 +192,14 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $torrents) {
             ($max_filesize > 0 && $torrent->size > $max_filesize) ) {
             continue;
         }
+        foreach ($searchTerms as $word) {
+            if (stripos($torrent->title, $word) === false) {
+                continue 2; /* continue outer loop if word is not found */
+            }
+        }
         $whiteWordFound = false;
         foreach ($titleWhitelist as $word) {
-            if (strpos($torrent->title, $word) !== false) {
+            if (stripos($torrent->title, $word) !== false) {
                 $whiteWordFound = true;
                 break;
             }
@@ -197,7 +208,7 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $torrents) {
             continue; /* continue outer loop if no word is found */
         }
         foreach ($titleBlacklist as $word) {
-            if (strpos($torrent->title, $word) !== false) {
+            if (stripos($torrent->title, $word) !== false) {
                 continue 2; /* continue outer loop if word is found */
             }
         }
