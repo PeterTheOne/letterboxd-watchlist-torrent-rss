@@ -1,6 +1,7 @@
 <?php
 
 include_once('config.php');
+include_once('functions.php');
 
 $filmsFound = $database->getFilmsOrderByCreated();
 
@@ -22,6 +23,10 @@ $filmsFound = $database->getFilmsOrderByCreated();
                 <div class="col-xs-12">
                     <h1>letterboxd-watchlist-rss - Status</h1>
 
+                <?php if( count($filmsFound) === 0) : ?>
+                    <p class="bg-warning">Nothing yet! <a href="cron.php">Start a cronjob</a></p>
+                <?php else : ?>
+
                     <table class="table table-condensed table-hover">
                         <tr>
                             <th>Title</th>
@@ -29,6 +34,7 @@ $filmsFound = $database->getFilmsOrderByCreated();
                             <th>Searched</th>
                             <th>Found</th>
                             <th>Release info</th>
+                            <th>Size</th>
                             <th>Torrent links</th>
                         </tr>
                         <?php
@@ -58,6 +64,11 @@ $filmsFound = $database->getFilmsOrderByCreated();
                             </td>
                             <td>
                                 <?php if ($film->found) : ?>
+                                    <?php echo human_filesize($film->torrentSize); ?>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($film->found) : ?>
                                     <?php if ($film->torrentMagnet) : ?>
                                         <a href="<?php echo $film->torrentMagnet; ?>">
                                             <span class="glyphicon glyphicon-magnet" aria-hidden="true"></span>
@@ -77,6 +88,7 @@ $filmsFound = $database->getFilmsOrderByCreated();
                             }
                         ?>
                     </table>
+                <?php endif; ?>
                 </div><!-- .col-xs-12 -->
             </div><!-- .row -->
         </div><!-- .container-fluid -->

@@ -16,8 +16,8 @@ class ExtraTorrentParser extends TorrentSearchParserAbstract
         foreach ($rss->channel->item as $torrentNode) {
             $torrent = new ArrayObject();
             $torrent->title = $torrentNode->children()->title;
-            $torrent->seeds = $torrentNode->children()->seeders;
-            $torrent->size = $torrentNode->children()->size;
+            $torrent->seeds = intval($torrentNode->children()->seeders);
+            $torrent->size = (float)$torrentNode->children()->size;
             $torrent->torrentInfo = $torrentNode->children()->link;
             $torrent->torrentInfoHash = $torrentNode->children()->info_hash;
             $torrent->torrentFile = ($torrentNode->children()->enclosure && $torrentNode->children()->enclosure->attributes()) ? $torrentNode->children()->enclosure->attributes()->{'url'} : '';

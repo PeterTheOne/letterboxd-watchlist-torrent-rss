@@ -1,6 +1,7 @@
 <?php
 
 include_once('config.php');
+include_once('functions.php');
 include_once('parsers/KickassTorrentsParser.php');
 include_once('parsers/ExtraTorrentParser.php');
 
@@ -9,7 +10,12 @@ function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
 
     $contents = file_get_contents(LETTERBOXD_URL);
     $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
+
+    $previous_value = libxml_use_internal_errors(TRUE); /* Don't display warnings */
     $dom->loadHTML($contentsUTF8);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous_value);
+
     $xpath = new DomXPath($dom);
     /** @var $posterNodeList DOMNodeList */
     $posterNodeList = $xpath->query("//div[contains(@class, 'poster')]");
@@ -36,7 +42,12 @@ function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
 
         $contents = file_get_contents(LETTERBOXD_URL . 'page/' . $i . '/');
         $contentsUTF8 = mb_convert_encoding($contents, 'HTML-ENTITIES', "UTF-8");
+
+        $previous_value = libxml_use_internal_errors(TRUE); /* Don't display warnings */
         $dom->loadHTML($contentsUTF8);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous_value);
+
         $xpath = new DomXPath($dom);
         /** @var $posterNodeList DOMNodeList */
         $posterNodeList = $xpath->query("//div[contains(@class, 'poster')]");
@@ -75,11 +86,9 @@ function updateYear(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $filmsWi
 }
 
 function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $sites, $titleWhitelist, $titleBlacklist, $films) {
+    if (ENVIRONMENT === 'development') echo '<table class="table table-condensed table-hover">';
+
     foreach ($films as $film) {
-        if (ENVIRONMENT === 'development') {
-            echo '<br />' . $film->title . ($film->year ? ' (' . $film->year . ')' : '') . '<br />';
-            echo 'min seeds: ' . MINIMUM_SEEDS . ', min size: ' . MINIMUM_FILESIZE . 'GB <br />';
-        }
         $torrents = searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film);
         
         if ($torrents === false) {
@@ -87,35 +96,39 @@ function searchForTorrent(\LetterBoxdWatchlistRss\DatabaseAbstract $database, $s
         } else {
             $maxSeeds = 0;
             foreach ($torrents as $torrent) {
-                if (intval($torrent->seeds) > $maxSeeds) {
-                    $maxSeeds = intval($torrent->seeds);
+                if ($torrent->seeds > $maxSeeds) {
+                    $maxSeeds = $torrent->seeds;
                     $bestTorrent = $torrent;
                 }
             }
             if (isset($bestTorrent) && ($bestTorrent->torrentFile || $bestTorrent->torrentMagnet)) {
-                if (ENVIRONMENT === 'development') {
-                    echo '---------' . "<br />";
-                    echo 'max seeds: ' . $maxSeeds . "<br />";
-                    echo 'seeds: ' . $bestTorrent->seeds .', title: ' . $bestTorrent->title . '<br />';
-                    echo '---------' . "<br />";
-                }
+                if (ENVIRONMENT === 'development')
+                    echo '<tr class="success"><td colspan="4"><strong>' . $bestTorrent->title . '</strong> (' . human_filesize($bestTorrent->size) . ') is most seeded torrent with ' . $bestTorrent->seeds . ' seeds!</td></tr>';
                 $database->setFound($film->title, $bestTorrent->title, $bestTorrent->torrentInfo, $bestTorrent->torrentInfoHash, $bestTorrent->torrentMagnet, $bestTorrent->torrentFile, $bestTorrent->size);
             }
         }
     }
+
+    if (ENVIRONMENT === 'development') echo '</table>';
 }
 
 function searchTorrentSites($sites, $titleWhitelist, $titleBlacklist, $film) {
     $torrents = array();
     
     foreach ($sites as $site) {
+        if (ENVIRONMENT === 'development')
+            echo '<tr>
+                <th>' . $film->title . ($film->year ? ' (' . $film->year . ')' : '') . ' on ' . $site . '</th>
+                <th>Seeds</th>
+                <th>Size</th>
+                <th>Verdict</th>
+            </tr>';
+
         switch ($site) {
             case 'kickasstorrents':
-                if (ENVIRONMENT === 'development') echo '--- site: ' . $site . "<br />";
                 $site = new KickassTorrentsParser();
                 break;
             case 'extratorrent':
-                if (ENVIRONMENT === 'development') echo '--- site: ' . $site . "<br />";
                 $site = new ExtraTorrentParser();
                 break;
             default:
@@ -144,9 +157,10 @@ function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchPars
     // and the dot, being special, is escaped with \
     $searchTerms = preg_replace('/[^A-Za-z0-9\. -]/', '', $film->title . ' ' . $film->year);
 
-    $content = file_get_contents( $site->getSearchURL($searchTerms) );
+    $content = @file_get_contents( $site->getSearchURL($searchTerms) );
 
     if ($content === false) {
+        if (ENVIRONMENT === 'development') echo '<tr class="danger"><td colspan="4">Error parsing results: file_get_contents</td></tr>';
         return false;
     }
 
@@ -160,11 +174,13 @@ function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchPars
     
     $contentDecoded = html_entity_decode($content);
     if ($content === false || trim($contentDecoded) === '') {
+        if (ENVIRONMENT === 'development') echo '<tr class="danger"><td colspan="4">Error parsing results: html_entity_decode</td></tr>';
         return false;
     }
     try {
         $rss = new SimpleXMLElement($contentDecoded, LIBXML_NOWARNING | LIBXML_NOERROR);
     } catch (Exception $exception) {
+        if (ENVIRONMENT === 'development') echo '<tr class="danger"><td colspan="4">Error parsing results: SimpleXMLElement</td></tr>';
         return false;
     }
 
@@ -173,27 +189,38 @@ function parseTorrentResults($titleWhitelist, $titleBlacklist, TorrentSearchPars
 }
 
 function filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrents) {
+    if (count($torrents) === 0 && ENVIRONMENT === 'development')
+        echo '<tr><td colspan="4">No results.</td></tr>';
+
     $filteredTorrents = array();
     $logTorrent = '';
     $searchTerms = explode(" ", $searchTerms);
     foreach ($torrents as $torrent) {
-        if (ENVIRONMENT === 'development') {
-            if($logTorrent) echo $logTorrent . '<br />';
-            $logTorrent = 'seeds: ' . $torrent->seeds . ', size: ' . $torrent->size . ', title: ' . $torrent->title;
-        }
+        $logTorrent = '<tr%s>
+            <td>' . $torrent->title . '</td>
+            <td>' . $torrent->seeds . '</td>
+            <td>' . human_filesize($torrent->size) . '</td>
+            <td>%s</td>
+        </tr>';
 
         $min_filesize = MINIMUM_FILESIZE * 1024 * 1024 * 1024;
         $max_filesize = MAXIMUM_FILESIZE * 1024 * 1024 * 1024;
 
         if ($torrent->seeds < MINIMUM_SEEDS) {
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Not enough seeds (at least ' . MINIMUM_SEEDS . ' needed)');
             continue;
         }
-        if ( ($min_filesize > 0 && $torrent->size < $min_filesize) ||
-            ($max_filesize > 0 && $torrent->size > $max_filesize) ) {
+        if ($min_filesize > 0 && $torrent->size < $min_filesize) {
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Filesize too small (at least ' . human_filesize($min_filesize) . ' needed)');
+            continue;
+        }
+        if ($max_filesize > 0 && $torrent->size > $max_filesize) {
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Filesize too big (less than ' . human_filesize($max_filesize) . ' needed)');
             continue;
         }
         foreach ($searchTerms as $word) {
             if (stripos($torrent->title, $word) === false) {
+                if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Search term "' . $word . '" not found in torrent title');
                 continue 2; /* continue outer loop if word is not found */
             }
         }
@@ -205,25 +232,51 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrent
             }
         }
         if (!$whiteWordFound) {
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'No term from whitelist found in torrent title');
             continue; /* continue outer loop if no word is found */
         }
         foreach ($titleBlacklist as $word) {
             if (stripos($torrent->title, $word) !== false) {
+                if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', '"' . $word . '" from blacklist found in torrent title');
                 continue 2; /* continue outer loop if word is found */
             }
         }
-        if (ENVIRONMENT === 'development')
-            $logTorrent = '<strong>' . $logTorrent . '</strong>';
+        if (ENVIRONMENT === 'development') echo sprintf($logTorrent, ' class="success"', 'Acceptable');
         $filteredTorrents[] = $torrent;
     }
     return $filteredTorrents;
 }
 
 try {
+    if (ENVIRONMENT === 'development') : ?>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>letterboxd-watchlist-rss - Cronjob</title>
+
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-xs-12">
+                    <h1>letterboxd-watchlist-rss - Cronjob</h1>
+
+                    <h2>Updating watchlist...</h2>
+    <?php endif;
+
     /**
      * parse letterboxd
      */
     updateWatchlist($database);
+
+    if (ENVIRONMENT === 'development') : ?>
+                    <h2>Searching for films, first time...</h2>
+    <?php endif;
 
     /**
      * look for films that have not been searched for
@@ -231,12 +284,23 @@ try {
     $filmsNotSearched = $database->getFilmTitlesNotSearchedLimit(LIMIT_FIND_NOT_SEARCHED_YET);
     searchForTorrent($database, $sites, $titleWhitelist, $titleBlacklist, $filmsNotSearched);
 
+    if (ENVIRONMENT === 'development') : ?>
+                    <h2>Searching for films, previously not found...</h2>
+    <?php endif;
+
     /**
      * look for films previously haven't been found
      */
     $filmsNotFound = $database->getFilmTitlesSearchedNotFoundLimit(LIMIT_FIND_NOT_FOUND_YET);
     searchForTorrent($database, $sites, $titleWhitelist, $titleBlacklist, $filmsNotFound);
 
+    if (ENVIRONMENT === 'development') : ?>
+                </div><!-- .col-xs-12 -->
+            </div><!-- .row -->
+        </div><!-- .container-fluid -->
+    </body>
+</html>
+    <?php endif;
 } catch (PDOException $e) {
     //return 'PDOException';
 }
