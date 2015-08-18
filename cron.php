@@ -197,9 +197,9 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrent
     $searchTerms = explode(" ", $searchTerms);
     foreach ($torrents as $torrent) {
         $logTorrent = '<tr%s>
-            <td>' . $torrent->title . '</td>
-            <td>' . $torrent->seeds . '</td>
-            <td>' . human_filesize($torrent->size) . '</td>
+            <td%s>' . $torrent->title . '</td>
+            <td%s>' . $torrent->seeds . '</td>
+            <td%s>' . human_filesize($torrent->size) . '</td>
             <td>%s</td>
         </tr>';
 
@@ -207,20 +207,20 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrent
         $max_filesize = MAXIMUM_FILESIZE * 1024 * 1024 * 1024;
 
         if ($torrent->seeds < MINIMUM_SEEDS) {
-            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Not enough seeds (at least ' . MINIMUM_SEEDS . ' needed)');
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', '', ' class="info"', '', 'Not enough seeds (at least ' . MINIMUM_SEEDS . ' needed)');
             continue;
         }
         if ($min_filesize > 0 && $torrent->size < $min_filesize) {
-            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Filesize too small (at least ' . human_filesize($min_filesize) . ' needed)');
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', '', '', ' class="info"', 'Filesize too small (at least ' . human_filesize($min_filesize) . ' needed)');
             continue;
         }
         if ($max_filesize > 0 && $torrent->size > $max_filesize) {
-            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Filesize too big (less than ' . human_filesize($max_filesize) . ' needed)');
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', '', '', ' class="info"', 'Filesize too big (less than ' . human_filesize($max_filesize) . ' needed)');
             continue;
         }
         foreach ($searchTerms as $word) {
             if (stripos($torrent->title, $word) === false) {
-                if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'Search term "' . $word . '" not found in torrent title');
+                if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', ' class="info"', '', '', 'Search term "' . $word . '" not found in torrent title');
                 continue 2; /* continue outer loop if word is not found */
             }
         }
@@ -232,16 +232,16 @@ function filterTorrents($titleWhitelist, $titleBlacklist, $searchTerms, $torrent
             }
         }
         if (!$whiteWordFound) {
-            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', 'No term from whitelist found in torrent title');
+            if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', ' class="info"', '', '', 'No term from whitelist found in torrent title');
             continue; /* continue outer loop if no word is found */
         }
         foreach ($titleBlacklist as $word) {
             if (stripos($torrent->title, $word) !== false) {
-                if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', '"' . $word . '" from blacklist found in torrent title');
+                if (ENVIRONMENT === 'development') echo sprintf($logTorrent, '', ' class="info"', '', '', '"' . $word . '" from blacklist found in torrent title');
                 continue 2; /* continue outer loop if word is found */
             }
         }
-        if (ENVIRONMENT === 'development') echo sprintf($logTorrent, ' class="success"', 'Acceptable');
+        if (ENVIRONMENT === 'development') echo sprintf($logTorrent, ' class="success"', '', '', '', 'Acceptable');
         $filteredTorrents[] = $torrent;
     }
     return $filteredTorrents;
