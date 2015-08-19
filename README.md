@@ -15,8 +15,8 @@ features
 - file based sqlite database
 - optional poormanscron
 
-how to use
-----------
+how to install
+--------------
 
 - you need a webserver with php to run this.
 - download or git clone the repository to your sever.
@@ -26,3 +26,16 @@ how to use
 - open `cron.php`, wait and then `status.php` to check if it is working.
 - schedule a [cronjob](https://en.wikipedia.org/wiki/Cron) to call `cron.php` every hour/day or enable `POORMANSCRON` in the config.
 - setup your torrent client to call `index.php`.
+
+how to update
+-------------
+
+- git clone or copy new files to server.
+- copy `config-sample.php` changes to `config.php`.
+- call cron.php once.
+- open `cron.php`, wait and then `status.php` to check if it is working.
+
+debug
+-----
+
+if something doesn't seem to work enable development mode in `config.php` to see error messages.
