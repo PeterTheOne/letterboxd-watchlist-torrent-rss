@@ -29,6 +29,8 @@ define('MINIMUM_SEEDS', 4);
 define('MINIMUM_FILESIZE', 3); /* in GB */
 define('MAXIMUM_FILESIZE', 19); /* in GB */
 
+define('FEED_DOWNLOAD_LINK', 'both'); /* torrent, magnet, both */
+
 $sites = array( /* prioritize sites to search */
     'extratorrent',
     'kickasstorrents'
