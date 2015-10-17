@@ -19,7 +19,7 @@ define('LETTERBOXD_USERNAME', ''); /* write your username here */
 define('LETTERBOXD_BASE_URL', 'http://letterboxd.com');
 define('LETTERBOXD_URL', LETTERBOXD_BASE_URL . '/' . LETTERBOXD_USERNAME . '/watchlist/');
 
-define('MAX_WATCHLIST_PAGES_TO_FETCH', 3);
+define('MAX_WATCHLIST_PAGES_TO_FETCH', 0); // 0 stands for no limit, 0 recommend
 
 define('LIMIT_FIND_NOT_SEARCHED_YET', 10);
 define('LIMIT_FIND_NOT_FOUND_YET', 10);

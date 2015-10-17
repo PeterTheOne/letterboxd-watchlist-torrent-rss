@@ -22,7 +22,7 @@ function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
 
     $i = 1;
     $films = array();
-    while($posterNodeList->length > 0 && $contents !== false && $i <= MAX_WATCHLIST_PAGES_TO_FETCH) {
+    while($posterNodeList->length > 0 && $contents !== false && (MAX_WATCHLIST_PAGES_TO_FETCH === 0 || $i <= MAX_WATCHLIST_PAGES_TO_FETCH)) {
 
         foreach($posterNodeList as $posterNode) {
             $imgAltNode = $xpath->query("img/@alt", $posterNode)->item(0);
