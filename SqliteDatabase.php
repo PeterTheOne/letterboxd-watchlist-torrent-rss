@@ -321,7 +321,7 @@ class SqliteDatabase extends DatabaseAbstract {
     public function removeFilmsNotInTitleList($titleList) {
         try {
             /* sanity check */
-            if ($titleList < 10) {
+            if (count($titleList) < 10) {
                 return;
             }
             $this->pdo->query('DELETE FROM films WHERE title NOT IN ("' . implode('", "', $titleList) . '")');
