@@ -39,8 +39,8 @@ how to update
 
 - git clone or copy new files to server.
 - copy `config-sample.php` changes to `config.php`.
-- call cron.php once.
-- open `cron.php`, wait and then `status.php` to check if it is working.
+- open `cron.php`, wait
+- then `status.php` to check if it is working.
 
 debug
 -----
