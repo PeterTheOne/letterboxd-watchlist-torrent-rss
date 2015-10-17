@@ -51,8 +51,8 @@ $titleBlacklist = array( /* none of these may be in the title */
     'ganool'
 );
 
-include_once('DatabaseAbstract.php');
-include_once('SqliteDatabase.php');
+include_once('src/database/DatabaseAbstract.php');
+include_once('src/database/SqliteDatabase.php');
 
 $pdo = new \PDO('sqlite:' . SQLITE_FILENAME);
 $database = new LetterBoxdWatchlistRss\SqliteDatabase($pdo);

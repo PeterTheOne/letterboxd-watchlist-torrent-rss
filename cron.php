@@ -1,9 +1,9 @@
 <?php
 
 include_once('config.php');
-include_once('functions.php');
-include_once('parsers/KickassTorrentsParser.php');
-include_once('parsers/ExtraTorrentParser.php');
+include_once('src/functions.php');
+include_once('src/parsers/KickassTorrentsParser.php');
+include_once('src/parsers/ExtraTorrentParser.php');
 
 function updateWatchlist(\LetterBoxdWatchlistRss\DatabaseAbstract $database) {
     $dom = new DOMDocument();
