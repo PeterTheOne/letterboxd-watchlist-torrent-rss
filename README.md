@@ -9,16 +9,23 @@ features
 
 - support for multiple torrent sites
 - filter: black- and whitelist, filesize, min. seeds
-- supports mutliple torrent clients:
+- supports multiple torrent clients:
 - - deluged with YaRSS2
+- - Synology Download Center
 - - ...
 - file based sqlite database
 - optional poormanscron
 
+requirements
+------------
+- a webserver with php support
+- letterboxd account
+- bittorrent client with RSS support
+- (optional) cron
+
 how to install
 --------------
 
-- you need a webserver with php to run this.
 - download or git clone the repository to your sever.
 - you may need to make the folder writable to your server user.
 - copy `config-sample.php` to `config.php`.

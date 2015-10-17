@@ -58,19 +58,29 @@ foreach ($filmsFound as $film) {
         $item->appendChild( $torrentContentLength );
     }
 
-    if ($film->torrentFile) {
-        $enclosure = $xml->createElement( "enclosure" );
-        $enclosure->setAttribute( "url", $film->torrentFile );
-        if ($film->torrentSize) $enclosure->setAttribute( "length", $film->torrentSize );
-        $enclosure->setAttribute( "type", "application/x-bittorrent" );
-        $item->appendChild( $enclosure );
-
-        $link = $xml->createElement( "link" );
-        $link->appendChild( new DOMText( $film->torrentFile ) );
-        $item->appendChild( $link );
+    if ((!$film->torrentFile && !$film->torrentMagnet) ||
+        (FEED_DOWNLOAD_LINK === 'torrent' && !$film->torrentFile) ||
+        (FEED_DOWNLOAD_LINK === 'magnet' && !$film->torrentMagnet) ) {
+        continue;
     }
 
-    if ($film->torrentMagnet) {
+    $enclosure = $xml->createElement( "enclosure" );
+    if ($film->torrentSize) $enclosure->setAttribute( "length", $film->torrentSize );
+    $enclosure->setAttribute( "type", "application/x-bittorrent" );
+    $link = $xml->createElement( "link" );
+
+    if ((FEED_DOWNLOAD_LINK === 'both' || FEED_DOWNLOAD_LINK === 'torrent') && $film->torrentFile) {
+        $enclosure->setAttribute( "url", $film->torrentFile );
+        $link->appendChild( new DOMText( $film->torrentFile ) );
+    } else if (FEED_DOWNLOAD_LINK === 'magnet' && $film->torrentMagnet) {
+        $enclosure->setAttribute( "url", $film->torrentMagnet );
+        $link->appendChild( new DOMText( $film->torrentMagnet ) );
+    }
+
+    $item->appendChild( $enclosure );
+    $item->appendChild( $link );
+
+    if ((FEED_DOWNLOAD_LINK === 'both' || FEED_DOWNLOAD_LINK === 'magnet') && $film->torrentMagnet) {
         $torrentMagnetURI = $xml->createElement( "torrent:magnetURI" );
         $torrentMagnetURI->appendChild( new DOMText( $film->torrentMagnet ) );
         $item->appendChild( $torrentMagnetURI );
