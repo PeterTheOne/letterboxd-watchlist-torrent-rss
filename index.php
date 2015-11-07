@@ -37,7 +37,7 @@ foreach ($filmsFound as $film) {
     $filmPubDate = (new DateTime($film->foundDate))->format(DATETIME::RSS);
 
     // Item subelements
-    $title = $xml->createElement( "title", $film->torrentTitle );
+    $title = $xml->createElement( "title", htmlspecialchars($film->torrentTitle) );
     $description = $xml->createElement( "description", $filmTitle );
     $pubDate = $xml->createElement( "pubDate", $filmPubDate );
     $guid = $xml->createElement( "guid" );
